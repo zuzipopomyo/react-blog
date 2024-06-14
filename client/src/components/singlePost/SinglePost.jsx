@@ -1,55 +1,118 @@
-import './singlePost.css'
+import { Link, useLocation } from "react-router-dom";
+import "./singlePost.css";
+import { useContext, useEffect, useState } from "react";
+import axios from "axios";
+import { Context } from "../context/Context";
 
 export default function SinglePost() {
+  const location = useLocation();
+  const path = location.pathname.split("/")[2];
+  const [post, setPost] = useState(null); // Initialize as null
+  const PF = "http://localhost:3001/images/";
+  const { user } = useContext(Context);
+  const [title, setTitle] = useState("");
+  const [desc, setDesc] = useState("");
+  const [updateMode, setUpdateMode] = useState(false);
+
+  useEffect(() => {
+    const fetchPost = async () => {
+      try {
+        const res = await axios.get("http://localhost:3001/api/posts/" + path);
+        setPost(res.data);
+        setTitle(res.data.title);
+        setDesc(res.data.desc);
+      } catch (err) {
+        console.error("Error fetching post data:", err);
+      }
+    };
+    fetchPost();
+  }, [path]);
+
+  if (!post) return <div>Loading...</div>; // Handle loading state
+
+  const handleDelete = async () => {
+    try {
+      await axios.delete(`http://localhost:3001/api/posts/${post._id}`, {
+        data: { username: user.username },
+      });
+      window.location.replace("/");
+    } catch (err) {
+      console.error("Error deleting post:", err);
+    }
+  };
+
+  const handleUpdate = async () => {
+    try {
+      await axios.put(`http://localhost:3001/api/posts/${post._id}`, {
+        username: user.username,
+        title,
+        desc,
+      });
+      setUpdateMode(false);
+    } catch (err) {
+      console.error("Error updating post:", err);
+    }
+  };
+
   return (
-    
-    <div className='singlePost'>
-
+    <div className="singlePost">
       <div className="singlePostWrapper">
-        <img className='singlePostImg' src="https://i.pinimg.com/originals/ed/db/c4/eddbc4287440b4e3c1f10ed72d022ec5.jpg" alt="" />
-        <h1 className="singlePostTitle">
-          Lorem ipsum dolor sit amet consectetur adipisicing elit.
-          <div className="singlePostEdit">
-            <i className="singlePostIcon fa-solid fa-pen-to-square" />   
-            <i className="singlePostIcon fa-solid fa-trash" />
-          </div>
-        </h1>
+        {post.photo && (
+          <img className="singlePostImg" src={PF + post.photo} alt="" />
+        )}
+        {updateMode ? (
+          <input
+            type="text"
+            value={title}
+            className="singlePostTitleInput"
+            autoFocus
+            onChange={(e) => setTitle(e.target.value)}
+          />
+        ) : (
+          <h1 className="singlePostTitle">
+            {title}
+            {post.username === user?.username && (
+              <div className="singlePostEdit">
+                <i
+                  className="singlePostIcon fa-solid fa-pen-to-square"
+                  onClick={() => setUpdateMode(true)}
+                />
+                <i
+                  className="singlePostIcon fa-solid fa-trash"
+                  onClick={handleDelete}
+                />
+              </div>
+            )}
+          </h1>
+        )}
 
-        <div className='singlePostInfo'>
-            <span className='singlePostAuthor'>Author: <b>Safak</b></span>
-            <span className='singlePostDate'>2 hour ago</span>
+        <div className="singlePostInfo">
+          <span className="singlePostAuthor">
+            Author:
+            <Link to={`/?user=${post.username}`} className="link">
+              <b> {post.username}</b>
+            </Link>
+          </span>
+          <span className="singlePostDate">
+            {new Date(post.createdAt).toDateString()}
+          </span>
         </div>
-        <p className="singlePostDesc">
-          Lorem, ipsum dolor sit amet consectetur adipisicing elit. Iste error
-          quibusdam ipsa quis quidem doloribus eos, dolore ea iusto impedit!
-          Voluptatum necessitatibus eum beatae, adipisci voluptas a odit modi
-          eos! Lorem, ipsum dolor sit amet consectetur adipisicing elit. Iste
-          error quibusdam ipsa quis quidem doloribus eos, dolore ea iusto
-          impedit! Voluptatum necessitatibus eum beatae, adipisci voluptas a
-          odit modi eos! Lorem, ipsum dolor sit amet consectetur adipisicing
-          elit. Iste error quibusdam ipsa quis quidem doloribus eos, dolore ea
-          iusto impedit! Voluptatum necessitatibus eum beatae, adipisci voluptas
-          a odit modi eos! Lorem, ipsum dolor sit amet consectetur adipisicing
-          elit. Iste error quibusdam ipsa quis quidem doloribus eos, dolore ea
-          iusto impedit! Voluptatum necessitatibus eum beatae, adipisci voluptas
-          a odit modi eos! Lorem, ipsum dolor sit amet consectetur adipisicing
-          elit. Iste error quibusdam ipsa quis quidem doloribus eos, dolore ea
-          iusto impedit! Voluptatum necessitatibus eum beatae, adipisci voluptas
-          a odit modi eos!
-          <br />
-          <br />
-          Lorem, ipsum dolor sit amet consectetur adipisicing elit. Iste error
-          quibusdam ipsa quis quidem doloribus eos, dolore ea iusto impedit!
-          Voluptatum necessitatibus eum beatae, adipisci voluptas a odit modi
-          eos! Lorem, ipsum dolor sit amet consectetur adipisicing elit. Iste
-          error quibusdam ipsa quis quidem doloribus eos, dolore ea iusto
-          impedit! Voluptatum necessitatibus eum beatae, adipisci voluptas a
-          odit modi eos! Lorem, ipsum dolor sit amet consectetur adipisicing
-          elit. Iste error quibusdam ipsa quis quidem doloribus eos, dolore ea
-          iusto impedit! Voluptatum necessitatibus eum beatae, adipisci voluptas
-          a odit modi eos! Lorem, ipsum dolor sit amet consectetur.
-        </p>
+        {updateMode ? (
+          <textarea
+            className="singlePostDescInput"
+            value={desc}
+            autoFocus
+            onChange={(e) => setDesc(e.target.value)}
+          />
+        ) : (
+          <p className="singlePostDesc">{desc}</p>
+        )}
+        {updateMode && (
+          <button className="singlePostButton" onClick={handleUpdate}>
+            Update
+          </button>
+        )}
       </div>
     </div>
-  )
+  );
 }
